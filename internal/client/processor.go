@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gorinha-2025/internal/core"
 	"io"
 	"net/http"
@@ -52,8 +53,8 @@ func (pc *PaymentClient) send(url string, p *core.PaymentRequest) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 500 {
-		return errors.New("processor failed")
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("client error: %d", resp.StatusCode)
 	}
 
 	io.Copy(io.Discard, resp.Body)
@@ -74,7 +75,7 @@ func (pc *PaymentClient) checkDefaultHealth() bool {
 
 	if err != nil {
 		pc.defaultUp = false
-		pc.retryDelay = 5 * time.Second // default fallback
+		pc.retryDelay = 5 * time.Second // Default fallback
 		return false
 	}
 	defer resp.Body.Close()

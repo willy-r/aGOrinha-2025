@@ -14,13 +14,10 @@ import (
 )
 
 type Router struct {
-	store *store.MemoryStore
-	pool  *worker.WorkerPool
+	pool *worker.WorkerPool
 }
 
 func NewRouter() *Router {
-	storeInstance := store.NewMemoryStore()
-
 	defaultURL := config.GetEnv("PAYMENT_PROCESSOR_URL_DEFAULT", "http://localhost:8001")
 	fallbackURL := config.GetEnv("PAYMENT_PROCESSOR_URL_FALLBACK", "http://localhost:8002")
 
@@ -28,12 +25,11 @@ func NewRouter() *Router {
 	fmt.Println("Fallback Processor URL:", fallbackURL)
 
 	client := client.NewPaymentClient(defaultURL, fallbackURL)
-	pool := worker.NewWorkerPool(8, client, storeInstance)
+	pool := worker.NewWorkerPool(8, client)
 	pool.Start()
 
 	return &Router{
-		store: storeInstance,
-		pool:  pool,
+		pool: pool,
 	}
 }
 
@@ -88,8 +84,8 @@ func (r *Router) handleGetPaymentsSummary(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	def := r.store.Summary("default", from, to)
-	fbk := r.store.Summary("fallback", from, to)
+	def := store.SummaryFromFile("default", from, to)
+	fbk := store.SummaryFromFile("fallback", from, to)
 
 	body := fmt.Sprintf(
 		`{"default":{"totalRequests":%d,"totalAmount":%.2f},"fallback":{"totalRequests":%d,"totalAmount":%.2f}}`,
