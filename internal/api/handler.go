@@ -32,7 +32,7 @@ func NewRouter() *Router {
 	pool.Start()
 
 	return &Router{
-		store: store.NewMemoryStore(),
+		store: storeInstance,
 		pool:  pool,
 	}
 }

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -33,11 +34,14 @@ func (m *MemoryStore) Add(processor string, amount float64, t time.Time) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.records[processor] = append(m.records[processor], PaymentRecord{Amount: amount, Time: t})
+	log.Printf("[STORE] Added: %s | %.2f", processor, amount)
 }
 
 func (m *MemoryStore) Summary(processor string, from, to *time.Time) Summary {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	log.Printf("[STORE] %s summary: %d total registers", processor, len(m.records[processor]))
 
 	var total Summary
 	for _, rec := range m.records[processor] {

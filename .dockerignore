@@ -1,9 +1,6 @@
 **/.DS_Store
 **/*.log
-**/node_modules
 **/dist
 **/.env
-go.mod
-go.sum
 *.md
 *.txt

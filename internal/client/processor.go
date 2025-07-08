@@ -7,6 +7,7 @@ import (
 	"gorinha-2025/internal/core"
 	"io"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -16,9 +17,10 @@ type PaymentClient struct {
 	fallbackURL string
 	http        *http.Client
 
-	healthMu  sync.Mutex
-	lastCheck time.Time
-	defaultUp bool
+	healthMu   sync.Mutex
+	lastCheck  time.Time
+	defaultUp  bool
+	retryDelay time.Duration
 }
 
 func NewPaymentClient(defaultURL, fallbackURL string) *PaymentClient {
@@ -44,17 +46,17 @@ func (pc *PaymentClient) SendToFallback(p *core.PaymentRequest) error {
 
 func (pc *PaymentClient) send(url string, p *core.PaymentRequest) error {
 	body, _ := json.Marshal(p)
-	response, err := pc.http.Post(url, "application/json", bytes.NewReader(body))
+	resp, err := pc.http.Post(url, "application/json", bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	if response.StatusCode >= 500 {
+	if resp.StatusCode >= 500 {
 		return errors.New("processor failed")
 	}
 
-	io.Copy(io.Discard, response.Body)
+	io.Copy(io.Discard, resp.Body)
 	return nil
 }
 
@@ -63,24 +65,43 @@ func (pc *PaymentClient) checkDefaultHealth() bool {
 	defer pc.healthMu.Unlock()
 
 	now := time.Now()
-	if now.Sub(pc.lastCheck) < 5*time.Second {
+	if now.Before(pc.lastCheck.Add(pc.retryDelay)) {
 		return pc.defaultUp
 	}
 
-	response, err := pc.http.Get(pc.defaultURL + "payments/service-health")
-	if err != nil || response.StatusCode != 200 {
+	resp, err := pc.http.Get(pc.defaultURL + "/payments/service-health")
+	pc.lastCheck = now
+
+	if err != nil {
 		pc.defaultUp = false
-		pc.lastCheck = now
+		pc.retryDelay = 5 * time.Second // default fallback
 		return false
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 429 {
+		pc.defaultUp = false
+		retryAfter := resp.Header.Get("Retry-After")
+		if sec, err := strconv.Atoi(retryAfter); err == nil {
+			pc.retryDelay = time.Duration(sec) * time.Second
+		} else {
+			pc.retryDelay = 5 * time.Second
+		}
+		return false
+	}
+
+	if resp.StatusCode != 200 {
+		pc.defaultUp = false
+		pc.retryDelay = 5 * time.Second
+		return false
+	}
 
 	var res struct {
 		Failing bool `json:"failing"`
 	}
-	_ = json.NewDecoder(response.Body).Decode(&res)
+	_ = json.NewDecoder(resp.Body).Decode(&res)
 
 	pc.defaultUp = !res.Failing
-	pc.lastCheck = now
+	pc.retryDelay = 5 * time.Second
 	return pc.defaultUp
 }

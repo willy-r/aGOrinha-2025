@@ -49,10 +49,12 @@ func (wp *WorkerPool) worker() {
 				log.Printf("GENERAL FAIL PROCESSING: %s | err=%v", p.CorrelationID, err)
 				continue
 			}
-			log.Printf("Fallback SUCCESS: %s | amount=%.2f", p.CorrelationID, p.Amount)
 			processor = "fallback"
+			log.Printf("fallback SUCCESS: %s | amount=%.2f", p.CorrelationID, p.Amount)
+		} else {
+			log.Printf("default SUCCESS: %s | amount=%.2f", p.CorrelationID, p.Amount)
 		}
-		log.Printf("Sent by DEFAULT: %s | amount=%.2f", p.CorrelationID, p.Amount)
+
 		t, _ := time.Parse(time.RFC3339Nano, p.RequestedAt)
 		wp.store.Add(processor, p.Amount, t)
 	}

@@ -1,7 +1,6 @@
 services:
   app1:
     build: .
-    image: Dockerfile
     container_name: app1
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
@@ -17,7 +16,6 @@ services:
 
   app2:
     build: .
-    image: Dockerfile
     container_name: app2
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
