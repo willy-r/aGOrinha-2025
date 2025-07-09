@@ -1,7 +1,6 @@
 services:
   app1:
-    build: .
-    container_name: app1
+    image: willrodrigues/agorinha-2025:latest
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
       - PAYMENT_PROCESSOR_URL_FALLBACK=http://payment-processor-fallback:8080
@@ -21,8 +20,7 @@ services:
           memory: "140MB"
 
   app2:
-    build: .
-    container_name: app2
+    image: willrodrigues/agorinha-2025:latest
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
       - PAYMENT_PROCESSOR_URL_FALLBACK=http://payment-processor-fallback:8080
@@ -43,7 +41,6 @@ services:
 
   nginx:
     image: nginx:latest
-    container_name: nginx
     ports:
       - "9999:9999"
     volumes:
