@@ -62,8 +62,17 @@ func (r *Router) handlePostPayments(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	r.pool.Enqueue(payment)
-	ctx.SetStatusCode(fasthttp.StatusAccepted)
+	success := r.pool.Enqueue(payment)
+
+	if success {
+		ctx.SetStatusCode(fasthttp.StatusAccepted)
+		ctx.SetContentType("application/json")
+		ctx.SetBodyString(`{"status":"accepted"}`)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+		ctx.SetContentType("application/json")
+		ctx.SetBodyString(`{"error":"queue full"}`)
+	}
 }
 
 func (r *Router) handleGetPaymentsSummary(ctx *fasthttp.RequestCtx) {
@@ -92,5 +101,6 @@ func (r *Router) handleGetPaymentsSummary(ctx *fasthttp.RequestCtx) {
 	)
 
 	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.SetContentType("application/json")
 	ctx.SetBodyString(body)
 }

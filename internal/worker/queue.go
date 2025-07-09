@@ -33,11 +33,13 @@ func (wp *WorkerPool) Start() {
 	}
 }
 
-func (wp *WorkerPool) Enqueue(p *core.PaymentRequest) {
+func (wp *WorkerPool) Enqueue(p *core.PaymentRequest) bool {
 	select {
 	case wp.queue <- p:
+		return true
 	default:
 		log.Println("Queue full, payment discarded")
+		return false
 	}
 }
 
@@ -46,21 +48,23 @@ func (wp *WorkerPool) worker() {
 		t, _ := time.Parse(time.RFC3339Nano, p.RequestedAt)
 
 		err := wp.client.SendToDefault(p)
-
-		if err != nil {
-			if strings.Contains(err.Error(), "409") || strings.Contains(err.Error(), "422") {
-				continue
-			}
-
-			err = wp.client.SendToFallback(p)
-			if err != nil {
-				continue
-			}
-
-			store.AddPaymentToFile("fallback", p.Amount, t)
+		if err == nil {
+			store.AddPaymentToFile("default", p.Amount, t)
 			continue
 		}
 
-		store.AddPaymentToFile("default", p.Amount, t)
+		// ignora erros de negócio: 409 ou 422
+		if strings.Contains(err.Error(), "409") || strings.Contains(err.Error(), "422") {
+			continue
+		}
+
+		// tenta fallback
+		err = wp.client.SendToFallback(p)
+		if err == nil {
+			store.AddPaymentToFile("fallback", p.Amount, t)
+		} else {
+			// não insiste, só loga e descarta
+			log.Printf("Failed to process payment: %v", err)
+		}
 	}
 }

@@ -29,7 +29,7 @@ func NewPaymentClient(defaultURL, fallbackURL string) *PaymentClient {
 		defaultURL:  defaultURL,
 		fallbackURL: fallbackURL,
 		http: &http.Client{
-			Timeout: 3 * time.Second,
+			Timeout: 5 * time.Second,
 		},
 	}
 }
