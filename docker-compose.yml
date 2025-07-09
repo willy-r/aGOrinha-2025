@@ -5,6 +5,8 @@ services:
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
       - PAYMENT_PROCESSOR_URL_FALLBACK=http://payment-processor-fallback:8080
+      - QUEUE_SIZE=10000
+      - WORKERS=8
       - STORE_JSON_PATH=/data/store.json
       - STORE_LOCK_PATH=/data/store.lock
     networks:
@@ -24,6 +26,8 @@ services:
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
       - PAYMENT_PROCESSOR_URL_FALLBACK=http://payment-processor-fallback:8080
+      - QUEUE_SIZE=10000
+      - WORKERS=8
       - STORE_JSON_PATH=/data/store.json
       - STORE_LOCK_PATH=/data/store.lock
     networks:

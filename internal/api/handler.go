@@ -7,7 +7,7 @@ import (
 	"gorinha-2025/internal/core"
 	"gorinha-2025/internal/store"
 	"gorinha-2025/internal/worker"
-	"log"
+	"strconv"
 	"time"
 
 	"github.com/valyala/fasthttp"
@@ -20,12 +20,13 @@ type Router struct {
 func NewRouter() *Router {
 	defaultURL := config.GetEnv("PAYMENT_PROCESSOR_URL_DEFAULT", "http://localhost:8001")
 	fallbackURL := config.GetEnv("PAYMENT_PROCESSOR_URL_FALLBACK", "http://localhost:8002")
+	workers, _ := strconv.Atoi(config.GetEnv("WORKERS", "8"))
 
 	fmt.Println("Default Processor URL: ", defaultURL)
 	fmt.Println("Fallback Processor URL:", fallbackURL)
 
 	client := client.NewPaymentClient(defaultURL, fallbackURL)
-	pool := worker.NewWorkerPool(8, client)
+	pool := worker.NewWorkerPool(workers, client)
 	pool.Start()
 
 	return &Router{
@@ -60,8 +61,6 @@ func (r *Router) handlePostPayments(ctx *fasthttp.RequestCtx) {
 		ctx.SetBodyString(err.Error())
 		return
 	}
-
-	log.Printf("Valid payment received, sending to queue: %v", payment)
 
 	r.pool.Enqueue(payment)
 	ctx.SetStatusCode(fasthttp.StatusAccepted)

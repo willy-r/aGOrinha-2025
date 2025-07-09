@@ -2,9 +2,11 @@ package worker
 
 import (
 	"gorinha-2025/internal/client"
+	"gorinha-2025/internal/config"
 	"gorinha-2025/internal/core"
 	"gorinha-2025/internal/store"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,8 +18,10 @@ type WorkerPool struct {
 }
 
 func NewWorkerPool(size int, client *client.PaymentClient) *WorkerPool {
+	queueSize, _ := strconv.Atoi(config.GetEnv("QUEUE_SIZE", "2000"))
+
 	return &WorkerPool{
-		queue:   make(chan *core.PaymentRequest, 10000), // initial buffer
+		queue:   make(chan *core.PaymentRequest, queueSize), // initial buffer
 		workers: size,
 		client:  client,
 	}
@@ -45,23 +49,18 @@ func (wp *WorkerPool) worker() {
 
 		if err != nil {
 			if strings.Contains(err.Error(), "409") || strings.Contains(err.Error(), "422") {
-				log.Printf("Payment skipped (client reject or duplicate): %s", p.CorrelationID)
 				continue
 			}
 
-			log.Printf("Attempting fallback for %s: %v", p.CorrelationID, err)
 			err = wp.client.SendToFallback(p)
 			if err != nil {
-				log.Printf("GENERAL FAIL PROCESSING: %s | err=%v", p.CorrelationID, err)
 				continue
 			}
 
 			store.AddPaymentToFile("fallback", p.Amount, t)
-			log.Printf("fallback SUCCESS: %s | amount=%.2f", p.CorrelationID, p.Amount)
 			continue
 		}
 
 		store.AddPaymentToFile("default", p.Amount, t)
-		log.Printf("default SUCCESS: %s | amount=%.2f", p.CorrelationID, p.Amount)
 	}
 }
