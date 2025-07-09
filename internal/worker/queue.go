@@ -53,17 +53,14 @@ func (wp *WorkerPool) worker() {
 			continue
 		}
 
-		// ignora erros de negócio: 409 ou 422
 		if strings.Contains(err.Error(), "409") || strings.Contains(err.Error(), "422") {
 			continue
 		}
 
-		// tenta fallback
 		err = wp.client.SendToFallback(p)
 		if err == nil {
 			store.AddPaymentToFile("fallback", p.Amount, t)
 		} else {
-			// não insiste, só loga e descarta
 			log.Printf("Failed to process payment: %v", err)
 		}
 	}
