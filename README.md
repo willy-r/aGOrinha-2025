@@ -14,23 +14,7 @@ Esta solução implementa uma API HTTP com dois endpoints principais:
 Pagamentos são processados com lógica de fallback automática para o segundo processador em caso de falha ou timeout. O sistema utiliza:
 
 - Pool de workers para paralelismo.
-- Persistência em marquivo (com flock).
-
-## 📁 Estrutura
-
-```bash
-rinha2025/
-├── cmd/
-│   └── server/             # Entrypoint do servidor HTTP
-├── internal/
-│   ├── api/                # Handlers da API
-│   ├── client/             # Cliente para processadores de pagamento
-│   ├── core/               # Lógica de negócios (Payment)
-│   ├── store/              # Implementações de persistência (arquivo)
-│   └── worker/             # Pool de workers
-├── go.mod
-└── go.sum
-````
+- Persistência em arquivo (com flock).
 
 ## ⚙️ Tecnologias Utilizadas
 
